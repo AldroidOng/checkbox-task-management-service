@@ -3,7 +3,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
 import { Task } from 'src/shared/models/task.model';
 import { User } from 'src/shared/models/user.model';
-import { GetTaskPayload, GetTaskResp } from 'src/shared/types/task-service.dto';
+import { CreateTaskPayload, CreateTaskResp, CreateTaskRespSuccess, GetTaskPayload, GetTaskResp, GetTaskRespSuccess } from 'src/shared/types/task-service.dto';
 
 @Injectable()
 export class UserTaskService {
@@ -12,12 +12,8 @@ export class UserTaskService {
     @InjectModel(Task) private taskModel: typeof Task,
   ) {}
 
-  async getTasks(getTaskPayload: GetTaskPayload): Promise<GetTaskResp[]> {
-    console.log(getTaskPayload);
-    // Check if user exist
-    const user = await this.userModel.findOne({
-      where: { email: getTaskPayload.email },
-    });
+  async getTasks(getTaskPayload: GetTaskPayload): Promise<GetTaskRespSuccess[]> {
+    const user = await this.getUser(getTaskPayload.email);
 
     if (!user) {
       throw new Error('User Not Found');
@@ -47,8 +43,29 @@ export class UserTaskService {
     return userTasks;
   }
 
-  // // Example method to create a task
-  // async createTask(taskData: Partial<Task>): Promise<Task> {
-  //   return this.taskModel.create(taskData);
-  // }
+  async createTask(taskData: CreateTaskPayload): Promise<CreateTaskRespSuccess> {
+    const user = await this.getUser(taskData.email);
+
+    if (!user) {
+      throw new Error('User Not Found');
+    }
+
+    const tasks = await this.taskModel.create({
+      userId: user.id,
+      name: taskData.taskName,
+      description: taskData.taskDesc,
+      dueDate: moment(taskData.dueDate).toDate()
+    });
+
+    return {taskId: tasks.dataValues.id.toString()};
+  }
+
+  private async getUser (email){
+    // Check if user exist
+    const user = await this.userModel.findOne({
+      where: { email },
+    });
+
+    return user;
+  }
 }
