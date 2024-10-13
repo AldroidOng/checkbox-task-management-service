@@ -1,6 +1,12 @@
 import { Controller, HttpStatus } from '@nestjs/common';
 import { MessagePattern, Payload } from '@nestjs/microservices';
-import { CreateTaskPayload, CreateTaskResp, ErrorResponse, GetTaskPayload, GetTaskResp } from 'src/shared/types/task-service.dto';
+import {
+  CreateTaskPayload,
+  CreateTaskResp,
+  ErrorResponse,
+  GetTaskPayload,
+  GetTaskResp,
+} from 'src/shared/types/task-service.dto';
 import { UserTaskService } from './user-task.service';
 
 @Controller('send-notification')
@@ -19,7 +25,9 @@ export class UserTaskController {
   }
 
   @MessagePattern({ cmd: 'create_task' })
-  async createTask(@Payload() data: CreateTaskPayload): Promise<CreateTaskResp> {
+  async createTask(
+    @Payload() data: CreateTaskPayload,
+  ): Promise<CreateTaskResp> {
     try {
       const taskId = await this.userTaskService.createTask(data);
 
@@ -32,8 +40,7 @@ export class UserTaskController {
   private handleError(error: Error): ErrorResponse {
     return {
       statusCode: HttpStatus.BAD_REQUEST,
-      message: error.message
+      message: error.message,
     };
   }
-
 }

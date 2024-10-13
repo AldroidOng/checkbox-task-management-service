@@ -1,9 +1,15 @@
-import * as moment from "moment";
+import * as moment from 'moment';
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
 import { Task } from 'src/shared/models/task.model';
 import { User } from 'src/shared/models/user.model';
-import { CreateTaskPayload, CreateTaskResp, CreateTaskRespSuccess, GetTaskPayload, GetTaskResp, GetTaskRespSuccess } from 'src/shared/types/task-service.dto';
+import {
+  CreateTaskPayload,
+  CreateTaskRespSuccess,
+  GetTaskPayload,
+  GetTaskRespSuccess,
+  TaskStatus,
+} from 'src/shared/types/task-service.dto';
 
 @Injectable()
 export class UserTaskService {
@@ -12,7 +18,9 @@ export class UserTaskService {
     @InjectModel(Task) private taskModel: typeof Task,
   ) {}
 
-  async getTasks(getTaskPayload: GetTaskPayload): Promise<GetTaskRespSuccess[]> {
+  async getTasks(
+    getTaskPayload: GetTaskPayload,
+  ): Promise<GetTaskRespSuccess[]> {
     const user = await this.getUser(getTaskPayload.email);
 
     if (!user) {
@@ -37,13 +45,16 @@ export class UserTaskService {
         taskDescription: task.description,
         dueDate: moment(task.dueDate).format(),
         createdAt: moment(task.createdAt).format(),
+        status: this.taskStatus(task.dueDate),
       });
     }
 
     return userTasks;
   }
 
-  async createTask(taskData: CreateTaskPayload): Promise<CreateTaskRespSuccess> {
+  async createTask(
+    taskData: CreateTaskPayload,
+  ): Promise<CreateTaskRespSuccess> {
     const user = await this.getUser(taskData.email);
 
     if (!user) {
@@ -54,18 +65,35 @@ export class UserTaskService {
       userId: user.id,
       name: taskData.taskName,
       description: taskData.taskDesc,
-      dueDate: moment(taskData.dueDate).toDate()
+      dueDate: moment(taskData.dueDate).toDate(),
     });
 
-    return {taskId: tasks.dataValues.id.toString()};
+    return { taskId: tasks.dataValues.id.toString() };
   }
 
-  private async getUser (email){
+  private async getUser(email) {
     // Check if user exist
     const user = await this.userModel.findOne({
       where: { email },
     });
 
     return user;
+  }
+
+  private taskStatus(dueDate: Date) {
+    let today = moment().startOf('day');
+    if (today.isAfter(moment(dueDate).endOf('day'))) {
+      return TaskStatus.OVERDUE;
+    }
+
+    const dueSoonDaysAway = parseInt(process.env.DUE_SOON_DAYS_AWAY, 10) || 7;
+    let dueSoonDate = moment()
+      .add(dueSoonDaysAway - 1, 'days')
+      .endOf('day');
+    if (moment(dueDate).isBetween(today, dueSoonDate, null, '[)')) {
+      return TaskStatus.DUE_SOON;
+    }
+
+    return TaskStatus.NOT_URGENT;
   }
 }
