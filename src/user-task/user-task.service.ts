@@ -9,6 +9,8 @@ import {
   GetTaskPayload,
   GetTaskRespSuccess,
   TaskStatus,
+  UpdateTaskPayload,
+  UpdateTaskRespSuccess,
 } from 'src/shared/types/task-service.dto';
 
 @Injectable()
@@ -70,6 +72,35 @@ export class UserTaskService {
     });
 
     return { taskId: tasks.dataValues.id.toString() };
+  }
+
+  async updateTask(
+    updateTaskData: UpdateTaskPayload,
+  ): Promise<UpdateTaskRespSuccess> {
+    const user = await this.getUser(updateTaskData.email);
+
+    if (!user) {
+      throw new Error('User Not Found');
+    }
+
+    const task = await this.taskModel.findOne({
+      where: {
+        id: updateTaskData.taskId,
+        userId: user.id,
+      },
+    });
+
+    if (!task) {
+      throw new Error('Invalid Task ID');
+    }
+
+    const updateTaskResult = await task.update({
+      name: updateTaskData.taskName,
+      description: updateTaskData.taskDesc,
+      dueDate: moment(updateTaskData.dueDate).toDate(),
+    });
+
+    return { taskId: updateTaskResult.dataValues.id.toString() };
   }
 
   private async getUser(email) {

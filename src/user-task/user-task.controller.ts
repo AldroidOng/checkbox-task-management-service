@@ -6,10 +6,12 @@ import {
   ErrorResponse,
   GetTaskPayload,
   GetTaskResp,
+  UpdateTaskPayload,
+  UpdateTaskResp,
 } from 'src/shared/types/task-service.dto';
 import { UserTaskService } from './user-task.service';
 
-@Controller('send-notification')
+@Controller('user-task')
 export class UserTaskController {
   constructor(private readonly userTaskService: UserTaskService) {}
 
@@ -30,6 +32,19 @@ export class UserTaskController {
   ): Promise<CreateTaskResp> {
     try {
       const taskId = await this.userTaskService.createTask(data);
+
+      return taskId;
+    } catch (error) {
+      return this.handleError(error);
+    }
+  }
+
+  @MessagePattern({ cmd: 'update_task' })
+  async updateTask(
+    @Payload() data: UpdateTaskPayload,
+  ): Promise<UpdateTaskResp> {
+    try {
+      const taskId = await this.userTaskService.updateTask(data);
 
       return taskId;
     } catch (error) {
