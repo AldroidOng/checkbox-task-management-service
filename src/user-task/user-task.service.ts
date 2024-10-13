@@ -41,6 +41,7 @@ export class UserTaskService {
       const task = tasks[i].dataValues;
 
       userTasks.push({
+        taskId: task.id.toString(),
         taskName: task.name,
         taskDescription: task.description,
         dueDate: moment(task.dueDate).format(),
